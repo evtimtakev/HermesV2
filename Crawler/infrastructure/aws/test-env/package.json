@@ -1,0 +1,20 @@
+{
+  "name": "test-env",
+  "version": "1.0.0",
+  "description": "",
+  "main": "run.js",
+  "type": "module",
+  "scripts": {
+    "start": "node run.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1374.0",
+    "dotenv": "^16.0.3",
+    "install": "^0.13.0",
+    "node-schedule": "^2.1.1",
+    "npm": "^9.6.6"
+  }
+}
