@@ -12,7 +12,7 @@ const app = express();
 app.use(bodyParser());
 
 // Define APP routes
-app.post("/v1/crawler/collect/data", getSocialMediaData);
+app.post("/v1/crawler/collect", getSocialMediaData);
 
 app.listen(APP_PORT, () => {
     console.log(`[server]: Server is running at http://localhost:${APP_PORT}`);

@@ -1,8 +1,9 @@
 from flask import Flask, render_template, request, url_for, jsonify
-from model import prep_model, sentiment_classification
+from ai import prep_sentiment_model, sentiment_classification, prep_category_classification_model, categorical_classification
 
 app = Flask(__name__)
-model, loaded_tokenizer = prep_model()
+model_sentiment, sentiment_tokenizer = prep_sentiment_model()
+model_category, category_tokenizer = prep_category_classification_model()
 
 PROMPTS = {
     "sentiment": "s",
@@ -15,9 +16,9 @@ def my_test_endpoint():
     prompt = input_json["prm"]
 
     if prompt == PROMPTS["sentiment"]:
-        response = sentiment_classification(model, loaded_tokenizer, input_json["content"], input_json["filter"])
+        response = sentiment_classification(model_sentiment, sentiment_tokenizer, input_json["content"], input_json["filter"])
     elif prompt == PROMPTS["category"]:
-        response = {}
+        response = categorical_classification(model_category, category_tokenizer, input_json["content"], input_json["filter"])
     else:
         response = {}
 
