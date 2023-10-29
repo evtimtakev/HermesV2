@@ -74,65 +74,18 @@
     ```code
    # Redit configurations
    #==============================>
-   # Enable Redit Search
-   ENABLE_REDIT=true
    
    # Redit URL
    REDIT_URL=https://www.reddit.com
    
    # In which subreadit to search for posts and comments
    REDIT_SUBREDIT_NAME=
-   
-   # Search term
-   REDIT_SUBREDIT_SEARCH_TERMS=
-   
-   # Time filter that will fetch post in a specific time period from today
-   # Example:
-   #   1 month back from today
-   #   1 year back from today
-   #   1 week back from today
-   #
-   # Time period unit.
-   # Possible options:
-   # y - year,
-   # m - month,
-   # w - week
-   REDIT_TIME_SPAN_FILTER_UNIT=m
-   # The amount of week, month, years to go back from today.
-   # Example:
-   # 1w
-   # 1m
-   # 4y
-   REDIT_TIME_SPAN_FILTER_AMOUNT=6
    #==============================/>
    
    # Stack overflow configuration
    #==============================>
-   # Enable stackoveflow search
-   ENABLE_STACKOVERFLOW=true
    
    STACKOVERFLOW_URL=https://api.stackexchange.com/
-   
-   STACKOVERFLOW_SEARCH_TERMS=
-   
-   # Time filter that will fetch post in a specific time period from today
-   # Example:
-   #   1 month back from today
-   #   1 year back from today
-   #   1 week back from today
-   #
-   # Time period unit.
-   # Possible options:
-   # y - year,
-   # m - month,
-   # w - week
-   STACKOVERFLOW_TIME_SPAN_FILTER_UNIT=y
-   # The amount of week, month, years to go back from today.
-   # Example:
-   # 1w
-   # 1m
-   # 4y
-   STACKOVERFLOW_TIME_SPAN_FILTER_AMOUNT=1
    #==============================/>
    
    
@@ -144,12 +97,6 @@
    # Twitter URL
    TWITTER_API_URL=https://api.twitter.com
    TWITTER_URL=https://twitter.com
-   
-   # Hashtags - support multiple hashtags connected with logical OR in the query. The value that is accepted is hatags with ",".
-   # For example: TWITTER_SEARCH_BY_HASHTAGS=
-   TWITTER_SEARCH_BY_HASHTAGS=
-   # Up to 6 search terms. The search terms are term space which mans AND then another term and so on
-   TWITTER_SEARCH_BY_TERMs=
    
    # The AUTH TOKEN that we get from the dev account
    TWITTER_BEARER_TOKEN=
@@ -180,7 +127,7 @@
 
 4. **View Results:**
 
-   Make a POST API call to "http://127.0.0.1:3000/v1/ai/classify" with the folowing body:
+   Make a POST API call to "http://127.0.0.1:5000/predict" with the folowing body:
    ```json
         {
            "prm": "s", // s - sentiment c - category
@@ -193,6 +140,36 @@
            ]
        }
    ```
+
+## Use the API for search in by search terms
+The crawler offer an API that you can use to call and collect social media posts
+After configuring and running the application you can collect data by doing a HTTP POST request
+
+Route: http://localhost:3000/v1/crawler/collect/data
+
+Example request:
+```
+[
+	{
+		"id": "redit",
+    "searchTerms": ["vmware", "help"],
+		"filterAmount": "1",
+		"filterUnit": "m"
+	},
+	{
+    "id": "stackoverflow",
+    "searchTerms": ["javascript"],
+		"filterAmount": "1",
+		"filterUnit": "2"
+	},
+	{
+    "id": "twitter",
+    "searchTerms": ["javascript"],
+		"hashtagsInput": []
+	}
+]
+```
+
 
 ## Contributing
 

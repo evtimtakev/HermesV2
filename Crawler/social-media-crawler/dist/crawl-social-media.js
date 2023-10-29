@@ -44,21 +44,15 @@ const moment_1 = __importDefault(require("moment"));
 const print_repoty_1 = require("./common/utils/print-repoty");
 const twiter_search_1 = require("./twiter/twiter-search");
 dotenv.config();
-var socialNetworks;
-(function (socialNetworks) {
-    socialNetworks["redit"] = "Reddit";
-    socialNetworks["twitter"] = "Twitter";
-    socialNetworks["stackOverflow"] = "Stack Overflow";
-})(socialNetworks || (socialNetworks = {}));
-const crawlInRedit = () => __awaiter(void 0, void 0, void 0, function* () {
-    const reditTerms = process.env.REDIT_SUBREDIT_SEARCH_TERMS.split(",");
+const crawlInRedit = (searchTerms, filterAmount, filterUnit) => __awaiter(void 0, void 0, void 0, function* () {
+    const reditTerms = searchTerms;
     let reditResult = [];
     for (let i = 0; i <= reditTerms.length - 1; i++) {
         const { data } = (yield subredit_search_1.SubreditSearch.searchInSubredit(reditTerms[i])) || {};
         if (data && data.children) {
             const children = data.children.filter((entry) => {
                 const { data } = entry;
-                const startDate = (0, date_time_1.substractPeriod)(Number(process.env.REDIT_TIME_SPAN_FILTER_AMOUNT) || 1, process.env.REDIT_TIME_SPAN_FILTER_UNIT || "W");
+                const startDate = (0, date_time_1.substractPeriod)(Number(filterAmount) || 1, filterUnit || "W");
                 if ((0, date_time_1.isBetweenNowAndStartDate)(moment_1.default.unix(data.created_utc), startDate)) {
                     return entry;
                 }
@@ -69,10 +63,10 @@ const crawlInRedit = () => __awaiter(void 0, void 0, void 0, function* () {
     const mappedReditPosts = subredit_search_1.SubreditSearch.toReportModel(reditResult);
     return mappedReditPosts && mappedReditPosts.length > 0 ? mappedReditPosts : [print_repoty_1.NO_DATA];
 });
-const crawlInStackoverflow = () => __awaiter(void 0, void 0, void 0, function* () {
-    const fromDate = (0, date_time_1.substractPeriod)(Number(process.env.STACKOVERFLOW_TIME_SPAN_FILTER_AMOUNT) || 1, process.env.STACKOVERFLOW_TIME_SPAN_FILTER_UNIT || "W");
+const crawlInStackoverflow = (searchTermsInput, filterAmount, filterUnit) => __awaiter(void 0, void 0, void 0, function* () {
+    const fromDate = (0, date_time_1.substractPeriod)(Number(filterAmount || 1), filterUnit || "W");
     let result = [];
-    const searchTerms = process.env.STACKOVERFLOW_SEARCH_TERMS.split(",");
+    const searchTerms = searchTermsInput;
     for (let i = 0; i <= searchTerms.length - 1; i++) {
         const { items } = yield stackoverflow_search_1.StackoverflowSearch.searchPosts(searchTerms[i], fromDate.unix());
         result = [...result, ...items];
@@ -80,9 +74,9 @@ const crawlInStackoverflow = () => __awaiter(void 0, void 0, void 0, function* (
     const mappedStackoverflowPosts = stackoverflow_search_1.StackoverflowSearch.toReportModel(result);
     return mappedStackoverflowPosts && mappedStackoverflowPosts.length > 0 ? mappedStackoverflowPosts : [print_repoty_1.NO_DATA];
 });
-const crawlInTwitter = () => __awaiter(void 0, void 0, void 0, function* () {
-    const hashtags = process.env.TWITTER_SEARCH_BY_HASHTAGS.split(",");
-    const searchTerms = process.env.TWITTER_SEARCH_BY_TERMS.split(",");
+const crawlInTwitter = (hashtagsInput, searchTermsInput) => __awaiter(void 0, void 0, void 0, function* () {
+    const hashtags = hashtagsInput;
+    const searchTerms = searchTermsInput;
     let result = [];
     if (searchTerms) {
         for (let i = 0; i <= searchTerms.length - 1; i++) {
@@ -100,24 +94,30 @@ const crawlInTwitter = () => __awaiter(void 0, void 0, void 0, function* () {
     const mappedTwitterPosts = twiter_search_1.TwitterSearch.toReportModel(result);
     return mappedTwitterPosts && mappedTwitterPosts.length > 0 ? mappedTwitterPosts : [print_repoty_1.NO_DATA];
 });
-const crawlSocialMedia = () => __awaiter(void 0, void 0, void 0, function* () {
+const crawlSocialMedia = (socialMediaSearch) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const printReportData = {
+        const response = {
             socials: []
         };
-        if (JSON.parse(process.env.ENABLE_REDIT)) {
-            const reditResult = yield crawlInRedit();
-            printReportData.socials.push({ id: socialNetworks.redit, data: reditResult });
+        for (let i = 0; i <= socialMediaSearch.length - 1; i++) {
+            const socialMedia = socialMediaSearch[i];
+            if (socialMedia.id === "redit") {
+                const { searchTerms, filterUnit, filterAmount } = socialMedia;
+                const reditResult = yield crawlInRedit(searchTerms, filterAmount, filterUnit);
+                response.socials.push({ id: "redit", data: reditResult });
+            }
+            if (socialMedia.id === "stackoverflow") {
+                const { searchTerms, filterUnit, filterAmount } = socialMedia;
+                const stackoverflowResult = yield crawlInStackoverflow(searchTerms, filterAmount, filterUnit);
+                response.socials.push({ id: "stackoverflow", data: stackoverflowResult });
+            }
+            if (socialMedia.id === "twitter") {
+                const { searchTerms, hashtagsInput } = socialMedia;
+                const twitterResult = yield crawlInTwitter(hashtagsInput, searchTerms);
+                response.socials.push({ id: "twitter", data: twitterResult });
+            }
         }
-        if (JSON.parse(process.env.ENABLE_STACKOVERFLOW)) {
-            const stackoverflowResult = yield crawlInStackoverflow();
-            printReportData.socials.push({ id: socialNetworks.stackOverflow, data: stackoverflowResult });
-        }
-        if (JSON.parse(process.env.ENABLE_TWITTER)) {
-            const twitterResult = yield crawlInTwitter();
-            printReportData.socials.push({ id: socialNetworks.twitter, data: twitterResult });
-        }
-        return printReportData;
+        return response;
     }
     catch (e) {
         console.log("=======Hermes failed to run ===========");

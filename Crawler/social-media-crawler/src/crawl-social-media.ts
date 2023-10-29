@@ -5,16 +5,21 @@ import {StackoverflowSearch} from "./stackoverflow/stackoverflow-search";
 import moment from "moment";
 import {NO_DATA} from "./common/utils/print-repoty";
 import {TwitterSearch} from "./twiter/twiter-search";
+import * as cluster from "cluster";
 dotenv.config()
 
-enum socialNetworks {
-    redit = "Reddit",
-    twitter = "Twitter",
-    stackOverflow = "Stack Overflow"
+type socialMediaType = "redit" | "stackoverflow" | "twitter";
+
+interface socialMediaFilter {
+    searchTerms?: string[];
+    filterAmount?: string;
+    filterUnit?: string;
+    hashtagsInput?: string[];
+    id?: socialMediaType
 }
 
-const crawlInRedit = async (): Promise<any> => {
-    const reditTerms = process.env.REDIT_SUBREDIT_SEARCH_TERMS.split(",")
+const crawlInRedit = async (searchTerms?: string[], filterAmount?: string, filterUnit?: string): Promise<any> => {
+    const reditTerms = searchTerms
     let reditResult = []
 
     for (let i = 0; i <= reditTerms.length -1; i++) {
@@ -23,7 +28,7 @@ const crawlInRedit = async (): Promise<any> => {
         if(data && data.children) {
             const children = data.children.filter((entry) => {
                 const { data } = entry;
-                const startDate = substractPeriod(Number(process.env.REDIT_TIME_SPAN_FILTER_AMOUNT) || 1,process.env.REDIT_TIME_SPAN_FILTER_UNIT || "W");
+                const startDate = substractPeriod(Number(filterAmount) || 1,filterUnit || "W");
                 if(isBetweenNowAndStartDate(moment.unix(data.created_utc), startDate)) {
                     return entry;
                 }
@@ -38,10 +43,10 @@ const crawlInRedit = async (): Promise<any> => {
     return mappedReditPosts && mappedReditPosts.length > 0 ? mappedReditPosts : [NO_DATA];
 }
 
-const crawlInStackoverflow = async (): Promise<any> => {
-    const fromDate = substractPeriod(Number(process.env.STACKOVERFLOW_TIME_SPAN_FILTER_AMOUNT) || 1, process.env.STACKOVERFLOW_TIME_SPAN_FILTER_UNIT || "W");
+const crawlInStackoverflow = async (searchTermsInput?: string[], filterAmount?: string, filterUnit?: string): Promise<any> => {
+    const fromDate = substractPeriod(Number(filterAmount || 1), filterUnit || "W");
     let result = [];
-    const searchTerms = process.env.STACKOVERFLOW_SEARCH_TERMS.split(",");
+    const searchTerms = searchTermsInput;
 
     for (let i = 0; i<= searchTerms.length -1; i++) {
         const {items} = await StackoverflowSearch.searchPosts(searchTerms[i], fromDate.unix());
@@ -53,9 +58,9 @@ const crawlInStackoverflow = async (): Promise<any> => {
 }
 
 
-const crawlInTwitter = async (): Promise<any> => {
-    const hashtags = process.env.TWITTER_SEARCH_BY_HASHTAGS.split(",");
-    const searchTerms = process.env.TWITTER_SEARCH_BY_TERMS.split(",");
+const crawlInTwitter = async (hashtagsInput?: string[], searchTermsInput?: string[] ): Promise<any> => {
+    const hashtags = hashtagsInput;
+    const searchTerms = searchTermsInput;
     let result = [];
 
     if(searchTerms) {
@@ -77,30 +82,36 @@ const crawlInTwitter = async (): Promise<any> => {
     return mappedTwitterPosts && mappedTwitterPosts.length > 0 ? mappedTwitterPosts : [NO_DATA];
 }
 
-export const crawlSocialMedia = async (): Promise<any> => {
+export const crawlSocialMedia = async (socialMediaSearch: socialMediaFilter[]): Promise<any> => {
 
     try {
-        const printReportData = {
+        const response = {
             socials: []
         };
 
-        if(JSON.parse(process.env.ENABLE_REDIT)) {
-            const reditResult = await crawlInRedit();
-            printReportData.socials.push({id: socialNetworks.redit, data: reditResult});
+        for (let i = 0; i <= socialMediaSearch.length - 1; i++) {
+            const socialMedia = socialMediaSearch[i];
+
+            if(socialMedia.id === "redit") {
+                const { searchTerms, filterUnit, filterAmount } = socialMedia
+                const reditResult = await crawlInRedit(searchTerms, filterAmount, filterUnit);
+                response.socials.push({id: "redit", data: reditResult});
+            }
+
+            if(socialMedia.id === "stackoverflow") {
+                const { searchTerms, filterUnit, filterAmount } = socialMedia
+                const stackoverflowResult = await crawlInStackoverflow(searchTerms, filterAmount, filterUnit);
+                response.socials.push({id: "stackoverflow", data: stackoverflowResult});
+            }
+
+            if(socialMedia.id === "twitter") {
+                const { searchTerms, hashtagsInput } = socialMedia
+                const twitterResult =  await crawlInTwitter(hashtagsInput, searchTerms);
+                response.socials.push({id: "twitter", data: twitterResult});
+            }
         }
 
-        if(JSON.parse(process.env.ENABLE_STACKOVERFLOW)) {
-            const stackoverflowResult = await crawlInStackoverflow();
-            printReportData.socials.push({id: socialNetworks.stackOverflow, data: stackoverflowResult});
-        }
-
-        if(JSON.parse(process.env.ENABLE_TWITTER)) {
-            const twitterResult =  await crawlInTwitter();
-            printReportData.socials.push({id: socialNetworks.twitter, data: twitterResult});
-
-        }
-
-        return printReportData;
+        return response;
 
     } catch (e) {
         console.log("=======Hermes failed to run ===========")

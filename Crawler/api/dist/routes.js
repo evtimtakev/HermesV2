@@ -12,17 +12,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.classify = exports.getSocialMediaData = void 0;
-const axios_1 = __importDefault(require("axios"));
+exports.getSocialMediaData = void 0;
 const index_js_1 = __importDefault(require("../../social-media-crawler/index.js"));
 const { crawlSocialMedia } = index_js_1.default;
 const PREDICT_API_URL = "http://127.0.0.1:5000/predict";
+const SOCIAL_MEDIA_FILTERS = {
+    redit: {
+        searchTerms: [],
+        filterAmount: 1,
+        filterUnit: "w"
+    },
+    stackoverflow: {
+        searchTerms: [],
+        filterAmount: 1,
+        filterUnit: "w"
+    },
+    twitter: {
+        searchTerms: [],
+    }
+};
 const getSocialMediaData = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const data = yield crawlSocialMedia();
-        const decoratedData = {
-            socials: []
-        };
+        const socialNetworks = req.body;
+        const data = yield crawlSocialMedia(socialNetworks);
         res.send(JSON.stringify(data));
     }
     catch (e) {
@@ -30,19 +42,4 @@ const getSocialMediaData = (req, res) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.getSocialMediaData = getSocialMediaData;
-const classify = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const { prm, filter, content } = req.body;
-        const response = yield axios_1.default.post(PREDICT_API_URL, {
-            "prm": prm,
-            "filter": filter,
-            "content": content
-        });
-        res.send(JSON.stringify(response.data));
-    }
-    catch (e) {
-        res.status(500).send(JSON.stringify(e));
-    }
-});
-exports.classify = classify;
 //# sourceMappingURL=routes.js.map
